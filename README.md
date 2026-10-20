@@ -1,28 +1,22 @@
-# CardioRAG
+# CardioRAG - Temiz Demo
 
-PubMed kardiyoloji makalelerinin metadata ve abstract alanlarını kalıcı ChromaDB indeksinde saklayan basit RAG prototipi. Osmanlıca Asistanı'ndaki chunking, RelayGPU embeddings ve QA yaklaşımından uyarlanmıştır.
+Bu proje PDF makalelerin metnini sayfa bazinda parcalar, Relay uyumlu embedding API ile vektor haline getirir, ChromaDB'de kalici olarak tutar ve sorulara ilgili kaynaklarla yanit verir.
 
 ## Kurulum (Windows PowerShell)
 
-```powershell
-py -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-$env:RELAY_API_KEY="YOUR_KEY"
-$env:RELAY_BASE_URL="YOUR_ENDPOINT"
-python scripts/build_index.py
-python scripts/ask.py
-```
+1. Bu ZIP'i **yeni, bos bir klasore** cikartin. Onceki paketlerle birlestirmeyin.
+2. `.env.example` dosyasini `.env` olarak kopyalayin: `Copy-Item .env.example .env`
+3. `.env` icine RELAY_API_KEY ve RELAY_BASE_URL degerlerini girin. API anahtarini GitHub'a yuklemeyin.
+4. Mevcut venv'i kullanacaksaniz `.venv` klasorunu yeni proje klasorune tasiyabilirsiniz; ancak Python ortamlarinin konuma bagli olabileceginden **yeniden olusturmak daha guvenlidir**:
+   - `py -m venv .venv`
+   - `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`
+5. ` .\.venv\Scripts\python.exe scripts/build_index.py ` komutunu calistirin. PDF klasorunu ve 5 sayisini girin.
+6. ` .\.venv\Scripts\python.exe scripts/ask.py ` komutunu calistirin ve sorular sorun.
 
-TXT klasörü seçerken `01_UYGUN` klasörünün tam yolunu girin. Veriler `chroma_db` içine kaydedilir ve GitHub'a eklenmez.
-
-## Veri biçimi
-
-Her `.txt` içinde `BASLIK:`, `PMID:`, `DOI:`, `MESH TERIMLERI:` ve `ABSTRACT:` gibi alanlar bulunur. Sistem yalnızca abstract'ları indeksler, tam PDF metnini değil.
-
-## Sınırlamalar
-
-- Aynı PMID ile yeniden indeksleme aynı ID'leri günceller; ancak silinmiş/eski chunk'ları otomatik temizlemez.
-- Yeniden çalıştırmada embedding istekleri tekrar yapılır. Sonraki sürümde hash bazlı atlama eklenebilir.
-- RelayGPU üzerinde embedding ve chat modellerinin erişilebilir olması gerekir.
-- Klinik karar verme sistemi değildir; yayınların lisanslarını kontrol edin.
+## Notlar
+- PDF dosyalari GitHub'a yuklenmez; sadece yerel dosyalardan okunur.
+- Indeks `chroma_db` klasorunde kalici tutulur. Aynı PDF degismediyse yeniden indekslenmez.
+- Tarama goruntusu olan PDF'ler OCR olmadan okunamaz. Tablolarda bilgi kaybi olabilir.
+- Ilac dozlari ancak makale metninde bulunuyorsa ve calisma baglaminda aktarilir; klinik tavsiye degildir.
+- API'nin secilen model adlarini desteklemesi gerekir; gerekirse `.env` icinde CHAT_MODEL/EMBED_MODEL degistirilir.
+- Degistirilen PDF eski vektorleri otomatik silmez; demo surumunde veritabani temizligi gerekebilir.

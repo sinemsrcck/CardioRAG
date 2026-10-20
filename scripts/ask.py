@@ -1,14 +1,22 @@
-import sys
 from pathlib import Path
-sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from src.core import CardioRAG
-rag=CardioRAG()
-print('CardioRAG hazır. Çıkmak için boş Enter.')
-while True:
-    q=input('\nSoru: ').strip()
-    if not q: break
-    answer,sources=rag.answer(q)
-    print('\n'+answer+'\n')
-    for i,s in enumerate(sources,1):
-        m=s['metadata']
-        print(f"[{i}] {m.get('title')} | {m.get('pubmed_url') or m.get('doi_url')}")
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.core import answer
+
+if __name__ == '__main__':
+    print('CardioRAG hazir. Cikmak icin q yazin.')
+    while True:
+        question = input('\nSorunuz: ').strip()
+        if question.lower() in ('q', 'quit', 'exit'):
+            break
+        if not question:
+            continue
+        try:
+            response, sources = answer(question)
+            print('\nYANIT:\n' + response)
+            if sources:
+                print('\nGETIRILEN KAYNAKLAR:')
+                for s in sources:
+                    print(f'[{s["number"]}] {s["filename"]} - sayfa {s["page"]}')
+        except Exception as exc:
+            print(f'HATA: {exc}')
