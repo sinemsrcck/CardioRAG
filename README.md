@@ -20,3 +20,33 @@ Bu proje PDF makalelerin metnini sayfa bazinda parcalar, Relay uyumlu embedding 
 - Ilac dozlari ancak makale metninde bulunuyorsa ve calisma baglaminda aktarilir; klinik tavsiye degildir.
 - API'nin secilen model adlarini desteklemesi gerekir; gerekirse `.env` icinde CHAT_MODEL/EMBED_MODEL degistirilir.
 - Degistirilen PDF eski vektorleri otomatik silmez; demo surumunde veritabani temizligi gerekebilir.
+
+Örnek için:
+py -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+
+**PDF makalelerini indeksleme
+
+.\.venv\Scripts\python.exe scripts/build_index.py
+
+PDF klasorunun tam yolunu yapistirin: C:\...\pdfler
+Kac PDF indekslensin? [5] (hepsi icin 0): 5
+
+İlk testte 4.456 PDF içinden 5 tanesi indekslenmiştir.
+
+***RAG soru-cevap sistemini başlatma
+
+.\.venv\Scripts\python.exe scripts/ask.py
+
+Örnek soru 1:
+
+İndekslenen makalelerde hangi kardiyovasküler hastalıklar ve tedavi yöntemleri incelenmiştir? Kaynaklarıyla açıkla.
+
+Örnek soru 2:
+
+İndekslenen makalelerde kalp yetmezliği ile ilgili hangi araştırma sonuçları raporlanmıştır? Yalnızca makalelerin kendi bulgularını kullan, kaynakça bölümlerini dikkate alma.
+
+Örnek soru 3:
+
+İndekslenen makalelerde hangi hasta grupları incelenmiştir ve temel araştırma bulguları nelerdir?

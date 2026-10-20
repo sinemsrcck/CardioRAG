@@ -4,16 +4,18 @@ import hashlib
 from pathlib import Path
 
 import chromadb
-import fitz
+import pymupdf as fitz
 from dotenv import load_dotenv
 from openai import OpenAI
+import traceback
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / '.env')
 DB_PATH = ROOT / 'chroma_db'
 COLLECTION = 'cardiorag_pdf_v1'
-EMBED_MODEL = os.getenv('EMBED_MODEL', 'openai/text-embedding-3-small')
-CHAT_MODEL = os.getenv('CHAT_MODEL', 'openai/gpt-4o-mini')
+EMBED_MODEL = os.getenv('EMBED_MODEL', 'gemini-embedding-001')
+CHAT_MODEL = os.getenv('CHAT_MODEL', 'gemini-3.8-flash')
 
 
 def api_client():
@@ -47,11 +49,22 @@ def split_text(text, size=1500, overlap=250):
         start = max(start + 1, end - overlap)
     return result
 
-
 def embed_batch(client, texts):
-    response = client.embeddings.create(model=EMBED_MODEL, input=texts)
-    return [item.embedding for item in sorted(response.data, key=lambda x: x.index)]
+    for attempt in range(6):
+        try:
+            response = client.embeddings.create(
+                model=EMBED_MODEL,
+                input=texts
+            )
+            return [item.embedding for item in response.data]
 
+        except Exception as exc:
+            if '429' not in str(exc) or attempt == 5:
+                raise
+
+            wait = min(15 * (attempt + 1), 60)
+            print(f'Gemini kotasi doldu. {wait} saniye bekleniyor...')
+            time.sleep(wait)
 
 def index_pdfs(folder, limit=5):
     folder = Path(folder).expanduser().resolve()
@@ -91,6 +104,7 @@ def index_pdfs(folder, limit=5):
         except Exception as exc:
             failed += 1
             print(f'[{i}/{len(selected)}] HATA {path.name}: {exc}')
+            traceback.print_exc()
     print(f'Bitti. Yeni: {indexed}, atlanan: {skipped}, hata: {failed}. Toplam parca: {store.count()}')
 
 
