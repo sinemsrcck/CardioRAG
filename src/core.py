@@ -82,6 +82,19 @@ def v3_collection():
         metadata={"hnsw:space": "cosine"}
     )
 
+
+V4_COLLECTION = "cardiorag_pdf_minilm_v4"
+
+
+def v4_collection():
+    db = chromadb.PersistentClient(path=str(DB_PATH))
+
+    return db.get_or_create_collection(
+        name=V4_COLLECTION,
+        metadata={"hnsw:space": "cosine"}
+    )
+
+
 def split_text(text, size=1500, overlap=250):
     text = re.sub(r'\s+', ' ', text).strip()
     if not text:
