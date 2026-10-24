@@ -1,3 +1,8 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+import mysql.connector
 
 from src.core import generation_client
 from src.retrieval import translate_query, rrf_fusion
@@ -5,6 +10,59 @@ from src.retrieval_v4 import semantic_search_v4, bm25_search_v4
 from src.reranker import rerank
 from src.citation_validator import validate_citations
 from src.source_diversity import select_diverse_sources
+from src.citation_validator import verify_claim
+
+def get_article_metadata(filenames):
+    """PDF adlarina gore MySQL'den makale bilgilerini getirir."""
+
+    if not filenames:
+        return {}
+
+    password = os.getenv("MYSQL_PASSWORD")
+
+    if not password:
+        raise ValueError("MYSQL_PASSWORD .env dosyasinda bulunamadi.")
+
+    connection = mysql.connector.connect(
+        host="localhost",
+        port=3306,
+        user="root",
+        password=password,
+        database="cardiorag"
+    )
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT
+                d.dosya_yolu,
+                d.pmid,
+                m.pmcid,
+                m.baslik,
+                m.yazarlar,
+                m.dergi,
+                m.yil,
+                m.doi
+            FROM dokumanlar d
+            JOIN makaleler m ON d.pmid = m.pmid
+        """)
+
+        from pathlib import Path
+
+        metadata = {}
+
+        for row in cursor.fetchall():
+            filename = Path(row["dosya_yolu"]).name
+
+            if filename in filenames:
+                metadata[filename] = row
+
+        cursor.close()
+        return metadata
+
+    finally:
+        connection.close()
 
 def answer_hybrid_v4(question, top_k=5):
     if not question or not question.strip():
@@ -30,6 +88,21 @@ def answer_hybrid_v4(question, top_k=5):
         hybrid_hits,
         top_k=20
     )
+
+    RELEVANCE_THRESHOLD = -7.0
+
+    if (
+        not reranked_hits
+        or reranked_hits[0]["rerank_score"] < RELEVANCE_THRESHOLD
+    ):
+        print("\n========== RELEVANCE CHECK ==========")
+        print("Yeterince ilgili kaynak bulunamadi.")
+
+        return (
+            "Bu soruyu yanıtlamak için mevcut kardiyovasküler "
+            "makale koleksiyonunda yeterince ilgili kaynak bulunamadı.",
+            []
+        )
 
     # 5. Kaynak cesitliligi filtresi
     best_hits = select_diverse_sources(
@@ -86,6 +159,36 @@ def answer_hybrid_v4(question, top_k=5):
             "rrf_score": hit["rrf_score"],
             "rerank_score": hit["rerank_score"],
         })
+
+
+    # Secilen kaynaklarin metadata bilgilerini tek sorguda getir.
+    filenames = {
+        source["filename"]
+        for source in sources
+    }
+
+    article_metadata = get_article_metadata(filenames)
+
+    for source in sources:
+        article = article_metadata.get(source["filename"], {})
+
+        source["pmid"] = article.get("pmid")
+        source["pmcid"] = article.get("pmcid")
+        source["title"] = article.get("baslik")
+        source["authors"] = article.get("yazarlar")
+        source["journal"] = article.get("dergi")
+        source["year"] = article.get("yil")
+        source["doi"] = article.get("doi")
+
+        source["pubmed_url"] = (
+            f"https://pubmed.ncbi.nlm.nih.gov/{source['pmid']}/"
+            if source["pmid"] else None
+        )
+
+        source["doi_url"] = (
+            f"https://doi.org/{source['doi']}"
+            if source["doi"] else None
+        )
 
     context = "\n\n".join(context_parts)
 
@@ -144,6 +247,31 @@ def answer_hybrid_v4(question, top_k=5):
 
     # Atif numaralarini ve kaynak cesitliligini kontrol et
     validation = validate_citations(answer_text, sources)
+
+    evidence_text = "\n\n".join(
+        f"[{i}] {hit['text']}"
+        for i, hit in enumerate(best_hits, start=1)
+    )
+
+    evidence_result = verify_claim(answer_text, evidence_text)
+
+    print("\n========== EVIDENCE VALIDATION ==========\n")
+    print(evidence_result)
+
+    cited_sources = [
+        source
+        for source in sources
+        if source["number"] in validation["used_citations"]
+    ]
+
+    print("\n========== YANITTA KULLANILAN KAYNAKLAR ==========\n")
+
+    for source in cited_sources:
+        print(f"[{source['number']}] {source['title']}")
+        print("PMID:", source["pmid"])
+        print("DOI:", source["doi"])
+        print("PubMed:", source["pubmed_url"])
+        print()
 
     print("\n========== ATIF DOGRULAMA ==========\n")
     print("Gecerli kaynak numaralari:", validation["valid"])

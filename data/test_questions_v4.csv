@@ -1,0 +1,22 @@
+
+id,category,question,expected_behavior
+1,cardiology,Hipertansiyonun kardiyovasküler hastalıklarla ilişkisi nedir?,answer_with_sources
+2,cardiology,Kalp yetmezliğinin başlıca risk faktörleri nelerdir?,answer_with_sources
+3,cardiology,Atriyal fibrilasyon inme riskini nasıl etkiler?,answer_with_sources
+4,cardiology,LDL kolesterolün ateroskleroz gelişimindeki rolü nedir?,answer_with_sources
+5,cardiology,Diyabet koroner arter hastalığı riskini nasıl artırır?,answer_with_sources
+6,cardiology,Miyokard enfarktüsünün yaygın belirtileri nelerdir?,answer_with_sources
+7,cardiology,Düzenli fiziksel aktivite kardiyovasküler sağlığı nasıl etkiler?,answer_with_sources
+8,cardiology,Kalp yetmezliğinde ejeksiyon fraksiyonunun önemi nedir?,answer_with_sources
+9,cardiology,Sigara kullanımının kardiyovasküler risk üzerindeki etkileri nelerdir?,answer_with_sources
+10,cardiology,Obezite ve hipertansiyon arasındaki ilişki nedir?,answer_with_sources
+11,cardiology,Kardiyovasküler hastalıklarda inflamasyonun rolü nedir?,answer_with_sources
+12,cardiology,Koroner arter hastalığında statinlerin etkisi nedir?,answer_with_sources
+13,cardiology,Kardiyovasküler hastalıklarda erken tanının önemi nedir?,answer_with_sources
+14,cardiology,Kronik böbrek hastalığı kardiyovasküler riski nasıl etkiler?,answer_with_sources
+15,cardiology,Kalp yetmezliğinde SGLT2 inhibitörlerinin etkileri nelerdir?,answer_with_sources
+16,out_of_scope,Mars'ta yaşam var mı?,reject
+17,out_of_scope,Python'da liste nasıl oluşturulur?,reject
+18,out_of_scope,İstanbul'un nüfusu kaçtır?,reject
+19,out_of_scope,Fotosentez nasıl gerçekleşir?,reject
+20,out_of_scope,En iyi bilgisayar oyunu hangisidir?,reject

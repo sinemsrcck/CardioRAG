@@ -60,3 +60,36 @@ def validate_citations(answer, sources):
         "paragraphs_without_citations": paragraphs_without_citations,
         "unique_document_count": len(unique_documents),
     }
+
+def verify_claim(claim, evidence):
+    """Bir iddianin verilen kaynak metniyle desteklenmesini kontrol eder."""
+    from src.core import generation_client
+
+    client, model = generation_client()
+
+    response = client.chat.completions.create(
+        model=model,
+        temperature=0,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a biomedical evidence verification assistant. "
+                    "Determine whether the supplied evidence supports the claim. "
+                    "Use only the provided evidence. "
+                    "Return exactly one label on the first line: "
+                    "SUPPORTED, PARTIALLY_SUPPORTED, or NOT_SUPPORTED. "
+                    "On the second line, explain briefly in Turkish. "
+                    "Do not treat a statement quoted from another study "
+                    "as independently verified scientific truth. "
+                    "If the evidence is insufficient, return NOT_SUPPORTED."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"CLAIM:\n{claim}\n\nEVIDENCE:\n{evidence}",
+            },
+        ],
+    )
+
+    return response.choices[0].message.content or ""

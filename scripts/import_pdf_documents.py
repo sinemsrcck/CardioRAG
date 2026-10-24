@@ -7,7 +7,7 @@ from pathlib import Path
 import mysql.connector
 
 PDF_FOLDER = Path("data/pdfs")
-CSV_PATH = Path("data/pmcid_pmid_50.csv")
+CSV_PATH = Path("data/pmcid_pmid_all.csv")
 
 
 def sha256_file(path):
