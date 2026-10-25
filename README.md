@@ -50,3 +50,8 @@ Kac PDF indekslensin? [5] (hepsi icin 0): 5
 Örnek soru 3:
 
 İndekslenen makalelerde hangi hasta grupları incelenmiştir ve temel araştırma bulguları nelerdir?
+
+
+## Development Roadmap
+
+See [TODO.md](TODO.md) for the current development progress, completed features, pending tasks, and planned experiments.

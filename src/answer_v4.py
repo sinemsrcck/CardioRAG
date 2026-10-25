@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import mysql.connector
 
+from pathlib import Path
 from src.core import generation_client
 from src.retrieval import translate_query, rrf_fusion
 from src.retrieval_v4 import semantic_search_v4, bm25_search_v4
@@ -13,7 +14,7 @@ from src.source_diversity import select_diverse_sources
 from src.citation_validator import verify_claim
 
 def get_article_metadata(filenames):
-    """PDF adlarina gore MySQL'den makale bilgilerini getirir."""
+    """Secilen PDF dosyalarinin makale bilgilerini MySQL'den getirir."""
 
     if not filenames:
         return {}
@@ -22,6 +23,9 @@ def get_article_metadata(filenames):
 
     if not password:
         raise ValueError("MYSQL_PASSWORD .env dosyasinda bulunamadi.")
+
+    filenames = sorted(set(filenames))
+    placeholders = ", ".join(["%s"] * len(filenames))
 
     connection = mysql.connector.connect(
         host="localhost",
@@ -34,7 +38,7 @@ def get_article_metadata(filenames):
     try:
         cursor = connection.cursor(dictionary=True)
 
-        cursor.execute("""
+        query = f"""
             SELECT
                 d.dosya_yolu,
                 d.pmid,
@@ -46,17 +50,23 @@ def get_article_metadata(filenames):
                 m.doi
             FROM dokumanlar d
             JOIN makaleler m ON d.pmid = m.pmid
-        """)
+            WHERE SUBSTRING_INDEX(
+                REPLACE(d.dosya_yolu, CHAR(92), '/'),
+                '/',
+                -1
+            ) IN ({placeholders})
+        """
 
-        from pathlib import Path
+        cursor.execute(query, tuple(filenames))
 
         metadata = {}
 
         for row in cursor.fetchall():
-            filename = Path(row["dosya_yolu"]).name
+            filename = Path(
+                row["dosya_yolu"].replace("\\", "/")
+            ).name
 
-            if filename in filenames:
-                metadata[filename] = row
+            metadata[filename] = row
 
         cursor.close()
         return metadata
@@ -64,7 +74,7 @@ def get_article_metadata(filenames):
     finally:
         connection.close()
 
-def answer_hybrid_v4(question, top_k=5):
+def answer_hybrid_v4(question, top_k=5, return_debug=False):
     if not question or not question.strip():
         raise ValueError("Soru bos olamaz.")
 
@@ -98,11 +108,24 @@ def answer_hybrid_v4(question, top_k=5):
         print("\n========== RELEVANCE CHECK ==========")
         print("Yeterince ilgili kaynak bulunamadi.")
 
-        return (
+        rejection_answer = (
             "Bu soruyu yanıtlamak için mevcut kardiyovasküler "
-            "makale koleksiyonunda yeterince ilgili kaynak bulunamadı.",
-            []
+            "makale koleksiyonunda yeterince ilgili kaynak bulunamadı."
         )
+
+        if return_debug:
+            return rejection_answer, [], {
+                "semantic_hits": semantic_hits,
+                "bm25_hits": bm25_hits,
+                "hybrid_hits": hybrid_hits,
+                "reranked_hits": reranked_hits,
+                "selected_hits": [],
+                "relevance_threshold": RELEVANCE_THRESHOLD,
+                "citation_validation": None,
+                "evidence_validation": None,
+            }
+
+        return rejection_answer, []
 
     # 5. Kaynak cesitliligi filtresi
     best_hits = select_diverse_sources(
@@ -136,7 +159,21 @@ def answer_hybrid_v4(question, top_k=5):
     )
 
     if not best_hits:
-        return "Indekslenmis makalelerde ilgili bilgi bulunamadi.", []
+        empty_answer = "Indekslenmis makalelerde ilgili bilgi bulunamadi."
+
+        if return_debug:
+            return empty_answer, [], {
+                "semantic_hits": semantic_hits,
+                "bm25_hits": bm25_hits,
+                "hybrid_hits": hybrid_hits,
+                "reranked_hits": reranked_hits,
+                "selected_hits": [],
+                "relevance_threshold": RELEVANCE_THRESHOLD,
+                "citation_validation": None,
+                "evidence_validation": None,
+            }
+
+        return empty_answer, []
 
     # 5. Kaynaklari hazirla
     context_parts = []
@@ -286,5 +323,19 @@ def answer_hybrid_v4(question, top_k=5):
         "Benzersiz makale sayisi:",
         validation["unique_document_count"]
     )
+
+    if return_debug:
+        debug = {
+            "semantic_hits": semantic_hits,
+            "bm25_hits": bm25_hits,
+            "hybrid_hits": hybrid_hits,
+            "reranked_hits": reranked_hits,
+            "selected_hits": best_hits,
+            "relevance_threshold": RELEVANCE_THRESHOLD,
+            "citation_validation": validation,
+            "evidence_validation": evidence_result,
+        }
+
+        return answer_text, sources, debug
 
     return answer_text, sources

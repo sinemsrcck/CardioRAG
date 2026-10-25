@@ -13,6 +13,25 @@ REJECTION_TEXT = (
     "yeterince ilgili kaynak bulunamadı"
 )
 
+def unique_article_ranking(hits):
+    """
+    Chunk siralamasini benzersiz makale siralamasina donusturur.
+    Her makalenin ilk goruldugu sirayi korur.
+    """
+    articles = []
+    seen = set()
+
+    for hit in hits:
+        metadata = hit.get("metadata") or {}
+        filename = metadata.get("filename")
+
+        if not filename or filename in seen:
+            continue
+
+        seen.add(filename)
+        articles.append(filename)
+
+    return articles
 
 def main():
     if not INPUT_PATH.exists():
@@ -42,6 +61,17 @@ def main():
         "unique_article_count",
         "sources_with_pmid",
         "sources_with_doi",
+        "retrieved_pmids",
+        "retrieved_dois",
+        "retrieved_filenames",
+        "semantic_top10_ids",
+        "bm25_top10_ids",
+        "rrf_top10_ids",
+        "reranked_top10_ids",
+        "semantic_top10_articles",
+        "bm25_top10_articles",
+        "rrf_top10_articles",
+        "reranked_top10_articles",
         "rejected",
         "answer",
         "error",
@@ -64,9 +94,10 @@ def main():
             start_time = time.perf_counter()
 
             try:
-                answer, sources = answer_hybrid_v4(
+                answer, sources, debug = answer_hybrid_v4(
                     question,
                     top_k=5,
+                    return_debug=True,
                 )
 
                 elapsed = time.perf_counter() - start_time
@@ -100,6 +131,51 @@ def main():
                         bool(source.get("doi"))
                         for source in sources
                     ),
+
+                    "semantic_top10_ids": "|".join(
+                        str(hit.get("id", ""))
+                        for hit in debug["semantic_hits"][:10]
+                    ),
+                    "semantic_top10_articles": "|".join(
+                        unique_article_ranking(debug["semantic_hits"])[:10]
+                    ),
+                    "bm25_top10_articles": "|".join(
+                        unique_article_ranking(debug["bm25_hits"])[:10]
+                    ),
+                    "rrf_top10_articles": "|".join(
+                        unique_article_ranking(debug["hybrid_hits"])[:10]
+                    ),
+                    "reranked_top10_articles": "|".join(
+                        unique_article_ranking(debug["reranked_hits"])[:10]
+                    ),
+                    "bm25_top10_ids": "|".join(
+                        str(hit.get("id", ""))
+                        for hit in debug["bm25_hits"][:10]
+                    ),
+                    "rrf_top10_ids": "|".join(
+                        str(hit.get("id", ""))
+                        for hit in debug["hybrid_hits"][:10]
+                    ),
+                    "reranked_top10_ids": "|".join(
+                        str(hit.get("id", ""))
+                        for hit in debug["reranked_hits"][:10]
+                    ),
+
+                    "retrieved_pmids": "|".join(
+                    str(s.get("pmid"))
+                    for s in sources
+                    if s.get("pmid")
+                    ),
+                    "retrieved_dois": "|".join(
+                        str(s.get("doi"))
+                        for s in sources
+                        if s.get("doi")
+                    ),
+                    "retrieved_filenames": "|".join(
+                    str(s.get("filename"))
+                    for s in sources
+                    if s.get("filename")
+                    ),
                     "rejected": rejected,
                     "answer": answer,
                     "error": "",
@@ -126,6 +202,17 @@ def main():
                     "unique_article_count": 0,
                     "sources_with_pmid": 0,
                     "sources_with_doi": 0,
+                    "retrieved_pmids": "",
+                    "retrieved_dois": "",
+                    "retrieved_filenames": "",
+                    "semantic_top10_ids": "",
+                    "semantic_top10_articles": "",
+                    "bm25_top10_articles": "",
+                    "rrf_top10_articles": "",
+                    "reranked_top10_articles": "",
+                    "bm25_top10_ids": "",
+                    "rrf_top10_ids": "",
+                    "reranked_top10_ids": "",
                     "rejected": False,
                     "answer": "",
                     "error": str(exc),
