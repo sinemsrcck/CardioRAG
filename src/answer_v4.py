@@ -195,6 +195,9 @@ def answer_hybrid_v4(question, top_k=5, return_debug=False):
             "page": meta["page"],
             "rrf_score": hit["rrf_score"],
             "rerank_score": hit["rerank_score"],
+            "text": hit["text"],
+            "file_id": meta.get("file_id"),
+            
         })
 
 
