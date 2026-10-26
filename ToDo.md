@@ -130,3 +130,6 @@ The system combines ChromaDB semantic retrieval, SQLite FTS5/BM25 keyword retrie
 ---
 
 *This roadmap will be updated as development and evaluation tasks are completed.*
+
+
+python -m streamlit run app.py
