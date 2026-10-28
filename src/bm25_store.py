@@ -103,6 +103,11 @@ class BM25Store:
             }
             for row in rows
         ]
+    def existing_chunk_ids(self):
+        rows = self.conn.execute(
+            "SELECT chunk_id FROM chunks_fts"
+        )
+        return {row[0] for row in rows}
 
     def count(self):
         return self.conn.execute(

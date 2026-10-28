@@ -1,4 +1,3 @@
-
 id,category,question,expected_behavior
 1,cardiology,Hipertansiyonun kardiyovasküler hastalıklarla ilişkisi nedir?,answer_with_sources
 2,cardiology,Kalp yetmezliğinin başlıca risk faktörleri nelerdir?,answer_with_sources
