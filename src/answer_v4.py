@@ -82,7 +82,7 @@ def answer_hybrid_v4(question, top_k=5, return_debug=False):
     english_query = translate_query(question)
 
     # 2. V4 uzerinde iki arama
-    semantic_hits = semantic_search_v4(question, top_k=20)
+    semantic_hits = semantic_search_v4(english_query, top_k=20)
     bm25_hits = bm25_search_v4(english_query, top_k=20)
 
     # 3. RRF

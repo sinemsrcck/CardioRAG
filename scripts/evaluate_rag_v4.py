@@ -48,6 +48,7 @@ def main():
         "r", encoding="utf-8-sig", newline=""
     ) as file:
         questions = list(csv.DictReader(file))
+        questions = questions[:1]
 
     print("Toplam test sorusu:", len(questions))
 
