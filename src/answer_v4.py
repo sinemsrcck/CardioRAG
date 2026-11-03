@@ -74,7 +74,7 @@ def get_article_metadata(filenames):
     finally:
         connection.close()
 
-def answer_hybrid_v4(question, top_k=5, return_debug=False):
+def answer_hybrid_v4(question, top_k=10, return_debug=False):
     if not question or not question.strip():
         raise ValueError("Soru bos olamaz.")
 

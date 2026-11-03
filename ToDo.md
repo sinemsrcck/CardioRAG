@@ -30,3 +30,11 @@ C. Sistem, arayüz ve teslim
 [ ] Performans optimizasyonu ve hata yönetimi
 [ ] Mimari diyagram, test raporu ve değerlendirme grafikleri
 [ ] GitHub, kurulum talimatları ve demo hazırlama
+
+
+
+site link:
+http://127.0.0.1:5000/
+
+run code:
+python .\cardiorag_web\app.py

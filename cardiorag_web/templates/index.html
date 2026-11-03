@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CardioRAG V4 | Literatür Asistanı</title>
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#17283a;background:#f3f6fa}*{box-sizing:border-box}body{margin:0}header{background:#132b44;color:#fff;padding:28px max(24px,calc((100vw - 920px)/2))}header h1{margin:0 0 6px;font-size:28px}header p{margin:0;color:#c8d8e6}.wrap{max-width:920px;margin:32px auto;padding:0 20px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}.stat,.panel{background:#fff;border:1px solid #e2e9f0;border-radius:14px;box-shadow:0 2px 10px #142b4510}.stat{padding:18px}.stat strong{display:block;font-size:24px;color:#174a73}.stat span{color:#617287;font-size:13px}.panel{padding:24px;margin-bottom:18px}h2{font-size:19px;margin:0 0 14px}label{font-weight:600;display:block;margin-bottom:10px}textarea{width:100%;min-height:110px;border:1px solid #b9c9d8;border-radius:10px;padding:13px;font:inherit;resize:vertical}textarea:focus{outline:2px solid #8dbbe5}button{background:#16659b;border:0;color:white;padding:12px 22px;border-radius:9px;font:inherit;font-weight:600;cursor:pointer;margin-top:12px}button:disabled{opacity:.6;cursor:wait}.hint,.muted{font-size:13px;color:#687b8d}.answer{white-space:pre-wrap;line-height:1.7}.source{border-top:1px solid #e4ebf2;padding:15px 0}.source:first-child{border-top:0}.source strong{display:block;margin-bottom:5px}.source small{display:block;color:#607287;margin:5px 0}.source a{color:#12639d;margin-right:16px;word-break:break-all}.hidden{display:none}.error{color:#b32424}.spinner{display:inline-block;width:14px;height:14px;border:2px solid #fff8;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px}@keyframes spin{to{transform:rotate(360deg)}}footer{color:#718093;font-size:12px;text-align:center;margin:28px 0}@media(max-width:600px){.stats{grid-template-columns:1fr}.panel{padding:18px}}
+  </style>
+</head>
+<body>
+  <header><h1>CardioRAG V4</h1><p>Kardiyovasküler literatür için kaynaklı soru-cevap asistanı</p></header>
+  <main class="wrap">
+    <div class="stats"><div class="stat"><strong>15.068</strong><span>Makale / PDF</span></div><div class="stat"><strong>587.265</strong><span>İndekslenmiş chunk</span></div><div class="stat"><strong>Hybrid RAG</strong><span>ChromaDB + BM25 + Reranker</span></div></div>
+    <section class="panel"><h2>Literatüre soru sorun</h2><form id="form"><label for="question">Sorunuz</label><textarea id="question" maxlength="2000" required placeholder="Örneğin: Kalp yetmezliğinde sık görülen klinik bulgular nelerdir?"></textarea><div><button id="submit" type="submit">Soruyu yanıtla</button></div></form><p class="hint">Yanıt, mevcut CardioRAG V4 indeksindeki makaleler kullanılarak üretilir. İşlem biraz zaman alabilir.</p><p id="status" role="status" aria-live="polite"></p></section>
+    <section id="result" class="panel hidden"><h2>Yanıt</h2><div id="answer" class="answer"></div></section>
+    <section id="sourcesPanel" class="panel hidden"><h2>Kaynaklar</h2><div id="sources"></div></section>
+    <footer>Araştırma amaçlıdır; klinik karar veya kişisel tıbbi tavsiye yerine geçmez.</footer>
+  </main>
+  <script>
+    const form=document.getElementById('form'),button=document.getElementById('submit'),status=document.getElementById('status');
+    const result=document.getElementById('result'),answer=document.getElementById('answer'),sourcesPanel=document.getElementById('sourcesPanel'),sources=document.getElementById('sources');
+    function addText(parent,tag,value){const el=document.createElement(tag);el.textContent=value;parent.appendChild(el);return el}
+    function safeUrl(value,kind){if(typeof value!=='string')return null;try{const url=new URL(value);const domain=kind==='pubmed'?'pubmed.ncbi.nlm.nih.gov':'doi.org';return url.protocol==='https:'&&url.hostname===domain?url.href:null}catch{return null}}
+    function addLink(parent,value,kind,label){const href=safeUrl(value,kind);if(!href)return;const link=addText(parent,'a',label);link.href=href;link.target='_blank';link.rel='noopener noreferrer'}
+    form.addEventListener('submit',async event=>{
+      event.preventDefault();const question=document.getElementById('question').value.trim();if(!question)return;
+      button.disabled=true;button.textContent='Yanıt hazırlanıyor…';status.className='muted';status.textContent='Makaleler taranıyor ve yanıt oluşturuluyor…';result.classList.add('hidden');sourcesPanel.classList.add('hidden');answer.textContent='';sources.replaceChildren();
+      try{
+        const response=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question})});
+        const data=await response.json();if(!response.ok)throw new Error(data.error||'Sunucu hatası');
+        answer.textContent=data.answer||'Yanıt bulunamadı.';result.classList.remove('hidden');
+        if(Array.isArray(data.sources)&&data.sources.length){
+          for(const s of data.sources){const item=document.createElement('div');item.className='source';addText(item,'strong',`[${s.number}] ${s.title||s.filename||'Makale'}`);addText(item,'small',[s.journal,s.year].filter(Boolean).join(' · '));addText(item,'small',`Dosya: ${s.filename||'—'} · Sayfa: ${s.page??'—'} · PMID: ${s.pmid||'—'}`);addLink(item,s.pubmed_url,'pubmed','PubMed');addLink(item,s.doi_url,'doi','DOI');sources.appendChild(item)}sourcesPanel.classList.remove('hidden')}
+        status.textContent='Yanıt tamamlandı.';
+      }catch(error){status.className='error';status.textContent=error.message||'Bir hata oluştu.'}finally{button.disabled=false;button.textContent='Soruyu yanıtla'}
+    });
+  </script>
+</body>
+</html>

@@ -25,32 +25,21 @@ class BM25Store:
         """)
         self.conn.commit()
 
+   
     def add_chunks(self, records):
         """
-        records:
-        [
-            {
-                "id": "...",
-                "file_id": "...",
-                "filename": "...",
-                "page": 1,
-                "text": "..."
-            }
-        ]
+        Yeni BM25 chunk'larini toplu olarak ekler.
+        Mevcut kayitlari silmez.
         """
         with self.conn:
-            for record in records:
-                self.conn.execute(
-                    "DELETE FROM chunks_fts WHERE chunk_id = ?",
-                    (record["id"],)
+            self.conn.executemany(
+                """
+                INSERT INTO chunks_fts (
+                    chunk_id, file_id, filename, page, content
                 )
-                self.conn.execute(
-                    """
-                    INSERT INTO chunks_fts (
-                        chunk_id, file_id, filename, page, content
-                    )
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                [
                     (
                         record["id"],
                         record["file_id"],
@@ -58,7 +47,10 @@ class BM25Store:
                         record["page"],
                         record["text"]
                     )
-                )
+                    for record in records
+                ]
+            )
+
 
     def delete_file(self, file_id):
         with self.conn:
